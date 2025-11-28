@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wedding Dashboard – Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- INTERNAL CSS FOR DASHBOARD -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, sans-serif;
+      background: #eef1ff;
+      color: #111;
+    }
+
+    /* NAVBAR */
+    .nav {
+      background: #4a5cff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .nav-links a {
+      margin-left: 1rem;
+      color: #dfe1ff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    /* PAGE WRAPPER */
+    .section {
+      max-width: 1100px;
+      margin: 1.6rem auto;
+      padding: 0 1rem;
+    }
+
+    .section-title {
+      font-size: 1.7rem;
+      margin-bottom: 0.3rem;
+      font-weight: 700;
+      color: #26304b;
+      text-align: center;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 1.4rem;
+    }
+
+    /* CARDS */
+    .card {
+      background: #fff;
+      padding: 1.4rem;
+      border-radius: 16px;
+      margin-top: 1rem;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.08);
+      border: 1px solid #dfe2ff;
+    }
+
+    h3 {
+      margin-bottom: 0.8rem;
+      color: #333;
+    }
+
+    /* TABLE DESIGN */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #4a5cff;
+      color: white;
+      padding: 8px;
+      text-align: left;
+    }
+
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      color: #222;
+    }
+
+    tr:hover td {
+      background: #f3f4ff;
+    }
+
+    /* WISHES */
+    .wish-card {
+      background: #fff;
+      padding: 0.8rem;
+      border-radius: 10px;
+      border: 1px solid #e0e0ff;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      margin-bottom: 0.6rem;
+    }
+
+    .wish-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.2rem;
+    }
+
+    .wish-text {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    /* BUTTON LOGOUT */
+    .logout {
+      background: #ff4a4a;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      color: white;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    .logout:hover {
+      background: #ff2f2f;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOP NAV -->
+  <header class="nav">
+    <div>Admin • Wedding</div>
+    <div class="nav-links">
+      <a onclick="loadRSVP()">RSVPs</a>
+      <a onclick="loadWishes()">Wishes</a>
+      <span class="logout" onclick="logout()">Logout</span>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <section class="section">
+    <h2 class="section-title">Dashboard</h2>
+    <p class="section-subtitle">Manage guest RSVPs and blessings easily.</p>
+
+    <!-- SUMMARY CARD -->
+    <div class="card">
+      <h3>Summary</h3>
+      <p id="summaryText">Loading...</p>
+    </div>
+
+    <!-- RSVP LIST -->
+    <div class="card">
+      <h3>RSVP List</h3>
+      <div id="rsvpList"></div>
+    </div>
+
+    <!-- WISH LIST -->
+    <div class="card">
+      <h3>Blessings / Wishes</h3>
+      <div id="wishListAdmin"></div>
+    </div>
+  </section>
+
+  <script>
+    const API = "";
+    const token = localStorage.getItem("adminToken");
+
+    if (!token) {
+      window.location.href = "admin.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("adminToken");
+      window.location.href = "admin.html";
+    }
+
+    /* ---------------- LOAD RSVPS ---------------- */
+    async function loadRSVP() {
+      const listEl = document.getElementById("rsvpList");
+      const summaryEl = document.getElementById("summaryText");
+
+      listEl.innerHTML = "Loading...";
+
+      try {
+        const res = await fetch(`${API}/api/admin/rsvps`, {
+          headers: { authorization: token },
+        });
+
+        const data = await res.json();
+
+        let attending = 0;
+        let notAttending = 0;
+
+        data.forEach((g) => {
+          if (g.attending) attending += (g.guestsCount || 1);
+          else notAttending++;
+        });
+
+        summaryEl.textContent =
+          `Total RSVPs: ${data.length} | Expected guests: ${attending} | Not attending: ${notAttending}`;
+
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Attending</th>
+                <th>Guests</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        data.forEach((g) => {
+          html += `
+            <tr>
+              <td>${g.name}</td>
+              <td>${g.phone || ""}</td>
+              <td>${g.email || ""}</td>
+              <td>${g.attending ? "Yes" : "No"}</td>
+              <td>${g.guestsCount || 1}</td>
+              <td>${g.message || ""}</td>
+            </tr>
+          `;
+        });
+
+        html += "</tbody></table>";
+        listEl.innerHTML = html;
+
+      } catch (err) {
+        console.error(err);
+        listEl.textContent = "Error loading RSVPs.";
+      }
+    }
+
+    /* ---------------- LOAD WISHES ---------------- */
+    async function loadWishes() {
+      const listEl = document.getElementById("wishListAdmin");
+      listEl.innerHTML = "Loading...";
+
+      try {
+        const res = await fetch(`${API}/api/admin/wishes`, {
+          headers: { authorization: token },
+        });
+
+        const data = await res.json();
+        let html = "";
+
+        data.forEach((w) => {
+          html += `
+            <div class="wish-card">
+              <div class="wish-name">${w.name}</div>
+              <div class="wish-text">${w.wish}</div>
+            </div>
+          `;
+        });
+
+        listEl.innerHTML = html || "No wishes yet.";
+
+      } catch (err) {
+        console.error(err);
+        listEl.textContent = "Error loading wishes.";
+      }
+    }
+
+    loadRSVP();
+    loadWishes();
+  </script>
+</body>
+</html>
