@@ -15,8 +15,17 @@ const Admin = require("./models/Admin");
 
 // APP
 const app = express();
+
+// CORRECT CORS
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
-app.use(cors());
 
 // MONGO
 mongoose
@@ -29,6 +38,7 @@ const PORT = process.env.PORT || 5000;
 /* ---------------- ADMIN LOGIN ---------------- */
 app.post("/api/admin/login", async (req, res) => {
   const { username, password } = req.body;
+
   const admin = await Admin.findOne({ username });
   if (!admin) return res.status(400).json({ error: "Invalid username" });
 
@@ -84,21 +94,25 @@ app.get("/api/admin/wishes", adminAuth, async (req, res) => {
 
 /* ---------------- STATIC FRONTEND ---------------- */
 
-// 1. Serve all static files in /public (css, js, html, images)
+// 1. Serve static files from public
 app.use(express.static(path.join(__dirname, "public")));
 
-// 2. Admin login page
+// 2. Admin pages (EXACT)
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// 3. Admin dashboard
 app.get("/dashboard.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// 4. Wedding site fallback — ONLY for normal URLs (not admin, not API)
-app.get(/^\/(?!api)(?!admin)(?!dashboard)[^\.]*$/, (req, res) => {
+// 3. API protection — DO NOT return HTML for API paths
+app.all("/api/*", (req, res, next) => {
+  next(); 
+});
+
+// 4. SAFE fallback — only for frontend routes, not API
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
