@@ -82,10 +82,10 @@ app.get("/api/admin/wishes", adminAuth, async (req, res) => {
 
 /* ---------------- STATIC FRONTEND ---------------- */
 
-// Serve static files
+// 1. Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// Admin pages
+// 2. Exact admin routes
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
@@ -94,13 +94,13 @@ app.get("/dashboard.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// Wedding site fallback
-app.get("*", (req, res, next) => {
-  if (req.originalUrl.startsWith("/api")) return next();
+// 3. SPA fallback (safe regex, NO WILDCARD)
+app.get(/^(?!\/api)(?!\/admin)(?!\/dashboard).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 /* ---------------- START SERVER (Render FIX) ---------------- */
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
